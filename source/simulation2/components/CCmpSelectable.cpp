@@ -19,6 +19,9 @@
 
 #include "ICmpSelectable.h"
 
+#include "graphics/Decal.h"
+#include "graphics/Material.h"
+#include "graphics/MaterialManager.h"
 #include "graphics/Overlay.h"
 #include "graphics/Terrain.h"
 #include "graphics/TextureManager.h"
@@ -65,7 +68,7 @@ public:
 
 	CCmpSelectable()
 		: m_DebugBoundingBoxOverlay(NULL), m_DebugSelectionBoxOverlay(NULL),
-		  m_BuildingOverlay(NULL), m_UnitOverlay(NULL), m_RangeOverlayData(),
+          m_BuildingOverlay(NULL), m_UnitDecal(NULL), m_RangeOverlayData(),
 		  m_FadeBaselineAlpha(0.f), m_FadeDeltaAlpha(0.f), m_FadeProgress(0.f),
 		  m_Selected(false), m_Cached(false), m_Visible(false)
 	{
@@ -77,7 +80,7 @@ public:
 		delete m_DebugBoundingBoxOverlay;
 		delete m_DebugSelectionBoxOverlay;
 		delete m_BuildingOverlay;
-		delete m_UnitOverlay;
+		delete m_UnitDecal;
 		for (RangeOverlayData& rangeOverlay : m_RangeOverlayData)
 			delete rangeOverlay.second;
 	}
@@ -272,7 +275,8 @@ public:
 private:
 	SOverlayDescriptor m_OverlayDescriptor;
 	SOverlayTexturedLine* m_BuildingOverlay;
-	SOverlayQuad* m_UnitOverlay;
+	CModelDecal* m_UnitDecal;
+	CMaterial* m_UnitDecalMaterial;
 
 	// Holds the data for all range overlays
 	typedef std::pair<SOverlayDescriptor, SOverlayTexturedLine*> RangeOverlayData;
@@ -567,73 +571,57 @@ void CCmpSelectable::UpdateDynamicOverlay(float frameOffset)
 	if (!cmpFootprint || !cmpPosition || !cmpPosition->IsInWorld())
 		return;
 
-	float rotY;
-	CVector2D position;
-	cmpPosition->GetInterpolatedPosition2D(frameOffset, position.X, position.Y, rotY);
-
-	CmpPtr<ICmpWaterManager> cmpWaterManager(GetSystemEntity());
-	CmpPtr<ICmpTerrain> cmpTerrain(GetSystemEntity());
-	ENSURE(cmpWaterManager && cmpTerrain);
-
-	CTerrain* terrain = cmpTerrain->GetCTerrain();
-	ENSURE(terrain);
-
-	ICmpFootprint::EShape fpShape;
-	entity_pos_t fpSize0_fixed, fpSize1_fixed, fpHeight_fixed;
-	cmpFootprint->GetShape(fpShape, fpSize0_fixed, fpSize1_fixed, fpHeight_fixed);
-
 	// ---------------------------------------------------------------------------------
 
-	if (!m_UnitOverlay)
+	if (!m_UnitDecal)
 	{
-		m_UnitOverlay = new SOverlayQuad;
+
+		float rotY;
+		CVector2D position;
+		cmpPosition->GetInterpolatedPosition2D(frameOffset, position.X, position.Y, rotY);
+
+		CmpPtr<ICmpWaterManager> cmpWaterManager(GetSystemEntity());
+		CmpPtr<ICmpTerrain> cmpTerrain(GetSystemEntity());
+		ENSURE(cmpWaterManager && cmpTerrain);
+
+		CTerrain* terrain = cmpTerrain->GetCTerrain();
+		ENSURE(terrain);
+
+		CMaterial material = g_Renderer.GetMaterialManager().LoadMaterial(VfsPath("art/materials/terrain_norm.xml"));
 
 		// Assuming we don't need the capability of swapping textures on-demand.
 		CTextureProperties texturePropsBase(m_OverlayDescriptor.m_QuadTexture.c_str());
 		texturePropsBase.SetWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_EDGE);
+		/*
+		CTextureProperties texturePropsBase(m_OverlayDescriptor.m_QuadTexture.c_str()); 
+		texturePropsBase.SetWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_EDGE); 
 		texturePropsBase.SetMaxAnisotropy(4.f);
-
+		CTexturePtr texture = g_Renderer.GetTextureManager().CreateTexture(texturePropsBase);
+		texture->Prefetch();
+		material.AddSampler(CMaterial::TextureSampler(CStrIntern("unit_selection_outline"), texture));
+		*/
+		
 		CTextureProperties texturePropsMask(m_OverlayDescriptor.m_QuadTextureMask.c_str());
 		texturePropsMask.SetWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_EDGE);
 		texturePropsMask.SetMaxAnisotropy(4.f);
+		CTexturePtr textureMask = g_Renderer.GetTextureManager().CreateTexture(texturePropsMask);
+		textureMask->Prefetch();
+		material.AddSampler(CMaterial::TextureSampler(CStrIntern("unit_selection_outline_mask"), textureMask));
 
-		m_UnitOverlay->m_Texture = g_Renderer.GetTextureManager().CreateTexture(texturePropsBase);
-		m_UnitOverlay->m_TextureMask = g_Renderer.GetTextureManager().CreateTexture(texturePropsMask);
+		ICmpFootprint::EShape fpShape;
+		entity_pos_t fpSize0_fixed, fpSize1_fixed, fpHeight_fixed;
+		cmpFootprint->GetShape(fpShape, fpSize0_fixed, fpSize1_fixed, fpHeight_fixed);
+
+	SDecal decal(material, 30, 30,
+		rotY, 0, 0,
+		true);
+		m_UnitDecal = new CModelDecal(terrain, decal);
+		m_UnitDecal->RemoveShadows();
 	}
 
-	m_UnitOverlay->m_Color = m_Color;
+	m_UnitDecal->SetShadingColor(CColor(1, 0, 0, 1));
+	m_UnitDecal->SetTransform(cmpPosition->GetInterpolatedTransform(frameOffset));
 
-	// TODO: some code duplication here :< would be nice to factor out getting the corner points of an
-	// entity based on its footprint sizes (and regardless of whether it's a circle or a square)
-
-	float s = sinf(-rotY);
-	float c = cosf(-rotY);
-	CVector2D unitX(c, s);
-	CVector2D unitZ(-s, c);
-
-	float halfSizeX = fpSize0_fixed.ToFloat();
-	float halfSizeZ = fpSize1_fixed.ToFloat();
-	if (fpShape == ICmpFootprint::SQUARE)
-	{
-		halfSizeX /= 2.0f;
-		halfSizeZ /= 2.0f;
-	}
-
-	std::vector<CVector2D> points;
-	points.push_back(CVector2D(position + unitX *(-halfSizeX)   + unitZ *  halfSizeZ));  // top left
-	points.push_back(CVector2D(position + unitX *(-halfSizeX)   + unitZ *(-halfSizeZ))); // bottom left
-	points.push_back(CVector2D(position + unitX *  halfSizeX    + unitZ *(-halfSizeZ))); // bottom right
-	points.push_back(CVector2D(position + unitX *  halfSizeX    + unitZ *  halfSizeZ));  // top right
-
-	for (int i=0; i < 4; i++)
-	{
-		float quadY = std::max(
-			terrain->GetExactGroundLevel(points[i].X, points[i].Y),
-			cmpWaterManager->GetExactWaterLevel(points[i].X, points[i].Y)
-		);
-
-		m_UnitOverlay->m_Corners[i] = CVector3D(points[i].X, quadY, points[i].Y);
-	}
 }
 
 void CCmpSelectable::RenderSubmit(SceneCollector& collector)
@@ -668,8 +656,8 @@ void CCmpSelectable::RenderSubmit(SceneCollector& collector)
 				break;
 			case DYNAMIC_QUAD:
 				{
-					if (m_UnitOverlay)
-						collector.Submit(m_UnitOverlay);
+					if (m_UnitDecal)
+						collector.Submit(m_UnitDecal);
 				}
 				break;
 			default:
