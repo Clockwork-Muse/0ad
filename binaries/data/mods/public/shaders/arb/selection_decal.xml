@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<program type="arb">
+
+    <define name="DECAL" value="1"/>
+
+    <vertex file="arb/overlayline.vp">
+        <stream name="pos"/>
+        <stream name="uv0"/>
+        <stream name="color"/>
+    </vertex>
+
+    <fragment file="arb/overlayline.fp">
+        <uniform name="baseTex" loc="0" type="sampler2D"/>
+        <uniform name="maskTex" loc="1" type="sampler2D"/>
+
+        <uniform name="shadingColor" loc="0" type="vec4"/>
+    </fragment>
+
+</program>

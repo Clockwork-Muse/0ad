@@ -608,15 +608,15 @@ void CCmpSelectable::UpdateDynamicOverlay(float frameOffset)
 		ICmpFootprint::EShape fpShape;
 		entity_pos_t fpSize0_fixed, fpSize1_fixed, fpHeight_fixed;
 		cmpFootprint->GetShape(fpShape, fpSize0_fixed, fpSize1_fixed, fpHeight_fixed);
-
+		material.
 	SDecal decal(material, 20, 20,
 		M_PI, 0, 0,
 		true);
 		m_UnitDecal = new CModelDecal(terrain, decal);
 		m_UnitDecal->RemoveShadows();
 	}
-
-	m_UnitDecal->SetShadingColor(CColor(256, 0, 0, 1));
+	
+	m_UnitDecal->SetShadingColor(CColor(1, 0, 0, .5));
 	m_UnitDecal->SetTransform(cmpPosition->GetInterpolatedTransform(frameOffset));
 
 }
