@@ -587,30 +587,30 @@ void CCmpSelectable::UpdateDynamicOverlay(float frameOffset)
 		CTerrain* terrain = cmpTerrain->GetCTerrain();
 		ENSURE(terrain);
 
-		CMaterial material = g_Renderer.GetMaterialManager().LoadMaterial(VfsPath("art/materials/decal_base.xml"));
+		CMaterial material = g_Renderer.GetMaterialManager().LoadMaterial(VfsPath("art/materials/selection_base.xml"));
 
 		// Assuming we don't need the capability of swapping textures on-demand.
-		CTextureProperties texturePropsBase(m_OverlayDescriptor.m_QuadTexture.c_str()); 
+		CTextureProperties texturePropsBase(m_OverlayDescriptor.m_QuadTexture.c_str());
 		texturePropsBase.SetWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_EDGE); 
 		texturePropsBase.SetMaxAnisotropy(4.f);
 		CTexturePtr texture = g_Renderer.GetTextureManager().CreateTexture(texturePropsBase);
 		texture->Prefetch();
-		material.AddSampler(CMaterial::TextureSampler(CStrIntern("unit_selection_outline"), texture));
-		/*
+		material.AddSampler(CMaterial::TextureSampler(CStrIntern("baseTex"), texture));
+		
 		CTextureProperties texturePropsMask(m_OverlayDescriptor.m_QuadTextureMask.c_str());
 		texturePropsMask.SetWrap(GL_CLAMP_TO_BORDER, GL_CLAMP_TO_EDGE);
 		texturePropsMask.SetMaxAnisotropy(4.f);
 		CTexturePtr textureMask = g_Renderer.GetTextureManager().CreateTexture(texturePropsMask);
 		textureMask->Prefetch();
-		material.AddSampler(CMaterial::TextureSampler(CStrIntern("unit_selection_outline_mask"), textureMask));
-		*/
+		material.AddSampler(CMaterial::TextureSampler(CStrIntern("maskTex"), textureMask));
+		
 
 		ICmpFootprint::EShape fpShape;
 		entity_pos_t fpSize0_fixed, fpSize1_fixed, fpHeight_fixed;
 		cmpFootprint->GetShape(fpShape, fpSize0_fixed, fpSize1_fixed, fpHeight_fixed);
 
-	SDecal decal(material, fpSize0_fixed.ToFloat(), fpSize1_fixed.ToFloat(),
-		rotY, 0, 0,
+	SDecal decal(material, 20, 20,
+		M_PI, 0, 0,
 		true);
 		m_UnitDecal = new CModelDecal(terrain, decal);
 		m_UnitDecal->RemoveShadows();
