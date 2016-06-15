@@ -312,6 +312,11 @@ QUERYHANDLER(GetRMSData)
 	msg->data = g_Game->GetSimulation2()->GetRMSData();
 }
 
+QUERYHANDLER(GetCurrentMapSize)
+{
+	msg->size = g_Game->GetWorld()->GetTerrain()->GetTilesPerSide();
+}
+
 BEGIN_COMMAND(ResizeMap)
 {
 	int m_OldTiles, m_NewTiles;

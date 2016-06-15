@@ -194,6 +194,11 @@ QUERY(GetMapSizes,
 		((std::string, sizes))
 		);
 
+QUERY(GetCurrentMapSize,
+		,
+		((int, size))
+		);
+
 QUERY(GetRMSData,
 		,
 		((std::vector<std::string>, data))
