@@ -23,6 +23,7 @@
 #include "ScenarioEditor/ScenarioEditor.h"
 #include "ScenarioEditor/Tools/Common/Brushes.h"
 #include "ScenarioEditor/Tools/Common/MiscState.h"
+#include "MapResizeDialog/MapResizeDialog.h"
 
 #include "GameInterface/Messages.h"
 
@@ -285,31 +286,16 @@ void TerrainSidebar::OnShowPriorities(wxCommandEvent& evt)
 
 void TerrainSidebar::OnResizeMap(wxCommandEvent& WXUNUSED(evt))
 {
-	wxArrayString sizeNames;
-	std::vector<size_t> sizeTiles;
 
-	// Load the map sizes list
-	AtlasMessage::qGetMapSizes qrySizes;
-	qrySizes.Post();
-	AtObj sizes = AtlasObject::LoadFromJSON(*qrySizes.sizes);
-	for (AtIter s = sizes["Data"]["item"]; s.defined(); ++s)
-	{
-		long tiles = 0;
-		wxString(s["Tiles"]).ToLong(&tiles);
-		sizeNames.Add(wxString(s["Name"]));
-		sizeTiles.push_back((size_t)tiles);
-	}
+	AtlasMessage::qGetCurrentMapSize qrySize;
+	qrySize.Post();
 
-	// TODO: set default based on current map size
-
-	wxSingleChoiceDialog dlg(this, _("Select new map size. WARNING: This probably only works reliably on blank maps."),
-			_("Resize map"), sizeNames);
+	MapResizeDialog dlg(this, qrySize.size);
 
 	if (dlg.ShowModal() != wxID_OK)
 		return;
-
-	size_t tiles = sizeTiles.at(dlg.GetSelection());
-	POST_COMMAND(ResizeMap, (tiles));
+	
+	POST_COMMAND(ResizeMap, (dlg.GetNewSize()));
 }
 
 BEGIN_EVENT_TABLE(TerrainSidebar, Sidebar)
