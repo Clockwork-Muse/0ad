@@ -286,11 +286,7 @@ void TerrainSidebar::OnShowPriorities(wxCommandEvent& evt)
 
 void TerrainSidebar::OnResizeMap(wxCommandEvent& WXUNUSED(evt))
 {
-
-	AtlasMessage::qGetCurrentMapSize qrySize;
-	qrySize.Post();
-
-	MapResizeDialog dlg(this, qrySize.size);
+	MapResizeDialog dlg(this);
 
 	if (dlg.ShowModal() != wxID_OK)
 		return;
