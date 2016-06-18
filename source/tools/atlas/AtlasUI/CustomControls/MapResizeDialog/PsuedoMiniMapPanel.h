@@ -15,29 +15,31 @@
 * along with 0 A.D.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef INCLUDED_MAPRESIZEDIALOG
-#define INCLUDED_MAPRESIZEDIALOG
+#include <wx/panel.h>
 
-#include <wx/dialog.h>
-
-class MapResizeDialog : public wxDialog
+class PsuedoMiniMapPanel : public wxPanel
 {
 public:
-	MapResizeDialog(wxWindow* parent);
+	PsuedoMiniMapPanel(wxWindow* parent, int currentSize);
 
-    /**
-	 * Returns selected new size.
-	 */
-	size_t GetNewSize() const;
+	void PaintEvent(wxPaintEvent& evt);
+	void EraseBackground(wxEraseEvent& evt);
 
+	void OnNewSize(wxCommandEvent& evt);
 private:
-	void OnCancel(wxCommandEvent& evt);
-	void OnOK(wxCommandEvent& evt);
-	void OnListBox(wxCommandEvent& evt);
+	void OnMouseDown(wxMouseEvent& evt);
+	void OnMouseUp(wxMouseEvent& evt);
+	void OnMouseMove(wxMouseEvent& evt);
 
-	size_t m_NewSize;
+	const int m_CurrentSize;
+	std::map<int, wxBitmap> m_ScreenTones;
+
+	wxPoint m_LastMousePos;
+	bool m_Dragging;
+
+	wxPoint m_SelectionCenter;
+	int m_SelectionRadius;
+	bool m_SameOrGrowing;
 
 	DECLARE_EVENT_TABLE();
 };
-
-#endif // INCLUDED_MAPRESIZEDIALOG
