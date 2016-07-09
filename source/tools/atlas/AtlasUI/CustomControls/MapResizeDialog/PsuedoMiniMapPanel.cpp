@@ -20,6 +20,7 @@
 #include "PsuedoMiniMapPanel.h"
 
 #include "GameInterface/Messages.h"
+#include "GameInterface/MessagePasser.h"
 #include "ScenarioEditor/Tools/Common/Tools.h"
 
 #include <math.h>
@@ -29,7 +30,7 @@
 
 namespace
 {
-	const int PanelRadius = 75;
+	const int PanelRadius = 64 + 1;
 	const wxPoint PanelCenter = wxPoint(PanelRadius + 1, PanelRadius + 1);
 	const char* ScreenToneMask[] =
 	{
@@ -45,6 +46,7 @@ namespace
 	};
 	const wxPoint ScreenToneOffset(-2 * PanelRadius, -2 * PanelRadius);
 	const wxPen Rim(*wxBLACK, 3);
+	const wxPen BackgroundMask(*wxBLACK, 2 * PanelRadius);
 
 	bool Within(const wxPoint& test, const wxPoint& center, int radius)
 	{
@@ -66,6 +68,16 @@ PsuedoMiniMapPanel::PsuedoMiniMapPanel(wxWindow* parent, int currentSize)
 	m_LastMousePos(-1, -1), m_Dragging(false),
 	m_SelectionRadius(PanelRadius), m_SelectionCenter(PanelCenter), m_SameOrGrowing(true)
 {
+
+	AtlasMessage::qGetMiniMapDisplay qryBackground;
+	qryBackground.Post();
+	int dim = qryBackground.dimension;
+	unsigned char* data = static_cast<unsigned char*>((void*)qryBackground.imageBytes);
+	
+	m_Background = wxImage(dim, dim, data);
+	m_Background.Rescale(PanelRadius * 2, PanelRadius * 2, wxIMAGE_QUALITY_BOX_AVERAGE);
+	m_Backgrounds[PanelRadius] = wxBitmap(m_Background);
+
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
 }
 
@@ -96,6 +108,12 @@ void PsuedoMiniMapPanel::OnNewSize(wxCommandEvent& evt)
 		overlay.ConvertColourToAlpha(0, 0, 0);
 
 		m_ScreenTones[m_SelectionRadius] = wxBitmap(overlay);
+	} 
+	else if (m_SameOrGrowing && m_Backgrounds.find(m_SelectionRadius) == m_Backgrounds.cend())
+	{
+		wxImage rescaled = wxImage(m_Background);
+		rescaled.Rescale(2 * m_SelectionRadius, 2 * m_SelectionRadius, wxIMAGE_QUALITY_BOX_AVERAGE);
+		m_Backgrounds[m_SelectionRadius] = wxBitmap(rescaled);
 	}
 
 	Refresh();
@@ -151,25 +169,28 @@ void PsuedoMiniMapPanel::PaintEvent(wxPaintEvent& WXUNUSED(evt))
 	wxGCDC dc(dca);
 	if (m_SameOrGrowing)
 	{
-		dc.SetBrush(*wxBLACK_BRUSH);
-		dc.DrawRectangle(0, 0, 2 * PanelRadius, 2 * PanelRadius);
-		dc.SetBrush(*wxWHITE_BRUSH);
-		dc.DrawCircle(m_SelectionCenter, m_SelectionRadius + 1);
-		dc.SetBrush(*wxGREEN_BRUSH);
+		dc.DrawBitmap(m_Backgrounds[m_SelectionRadius], m_SelectionCenter - wxSize(m_SelectionRadius, m_SelectionRadius));
+		
+		dc.SetBrush(*wxTRANSPARENT_BRUSH);
+		dc.SetPen(BackgroundMask);
+		dc.DrawCircle(m_SelectionCenter, PanelRadius + m_SelectionRadius);
+
+		const wxPen BorderPen(*wxWHITE, 2);
+		dc.SetPen(BorderPen);
 		dc.DrawCircle(m_SelectionCenter, m_SelectionRadius);
+		
 	}
 	else
 	{
-		dc.SetBrush(*wxGREEN_BRUSH);
-		dc.DrawRectangle(0, 0, 2 * PanelRadius, 2 * PanelRadius);
-		
+		dc.DrawBitmap(m_Backgrounds[PanelRadius], 0, 0);		
 		// "fade out" trimmed areas by drawing a screentone ring ring.
 		dc.DrawBitmap(m_ScreenTones[m_SelectionRadius], ScreenToneOffset + m_SelectionCenter);
 	}
 
 	// Centering markers.
 	dc.SetBrush(*wxBLACK_BRUSH);
-	dc.DrawCircle(m_SelectionCenter, 3);
+	dc.SetPen(*wxBLACK_PEN);
+	dc.DrawCircle(m_SelectionCenter, 2);
 	dc.SetPen(*wxWHITE_PEN);
 	dc.DrawLine(PanelRadius - 10, PanelRadius, PanelRadius + 10, PanelRadius);
 	dc.DrawLine(PanelRadius, PanelRadius + 10, PanelRadius, PanelRadius - 10);
@@ -197,5 +218,4 @@ EVT_MIDDLE_DOWN(PsuedoMiniMapPanel::OnMouseDown)
 EVT_MIDDLE_UP(PsuedoMiniMapPanel::OnMouseUp)
 EVT_MOTION(PsuedoMiniMapPanel::OnMouseMove)
 EVT_PAINT(PsuedoMiniMapPanel::PaintEvent)
-EVT_ERASE_BACKGROUND(PsuedoMiniMapPanel::EraseBackground)
 END_EVENT_TABLE()

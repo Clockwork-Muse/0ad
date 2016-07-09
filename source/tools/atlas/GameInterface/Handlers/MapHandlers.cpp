@@ -35,9 +35,11 @@
 #include "ps/CLogger.h"
 #include "ps/Filesystem.h"
 #include "ps/Game.h"
+#include "ps/GameSetup/GameSetup.h"
 #include "ps/Loader.h"
 #include "ps/World.h"
 #include "renderer/Renderer.h"
+#include "renderer/WaterManager.h"
 #include "scriptinterface/ScriptInterface.h"
 #include "simulation2/Simulation2.h"
 #include "simulation2/components/ICmpPlayer.h"
@@ -45,6 +47,7 @@
 #include "simulation2/components/ICmpPosition.h"
 #include "simulation2/components/ICmpRangeManager.h"
 #include "simulation2/components/ICmpTerrain.h"
+#include "simulation2/system/ParamNode.h"
 
 namespace
 {
@@ -305,6 +308,86 @@ MESSAGEHANDLER(LoadPlayerSettings)
 QUERYHANDLER(GetMapSizes)
 {
 	msg->sizes = g_Game->GetSimulation2()->GetMapSizes();
+}
+
+QUERYHANDLER(GetMiniMapDisplay)
+{
+	const CTerrain* terrain = g_Game->GetWorld()->GetTerrain();
+	const ssize_t dimension = terrain->GetVerticesPerSide() - 1;
+	const ssize_t bpp = 24;
+	const ssize_t buf_size = dimension * dimension * (bpp / 8);
+
+	// Data is destined for a wxImage, which uses free.
+	unsigned char* img = static_cast<unsigned char*>(malloc(buf_size));
+	if (img)
+	{
+		// Stolen from MiniMap.cpp
+		float shallowPassageHeight = 0.0f;
+		// Get the maximum height for unit passage in water.
+		CParamNode externalParamNode;
+		CParamNode::LoadXML(externalParamNode, L"simulation/data/pathfinder.xml", "pathfinder");
+		const CParamNode pathingSettings = externalParamNode.GetChild("Pathfinder").GetChild("PassabilityClasses");
+		if (pathingSettings.GetChild("default").IsOk() && pathingSettings.GetChild("default").GetChild("MaxWaterDepth").IsOk())
+			shallowPassageHeight = pathingSettings.GetChild("default").GetChild("MaxWaterDepth").ToFloat();
+
+		ssize_t w = dimension;
+		ssize_t h = dimension;
+		float waterHeight = g_Renderer.GetWaterManager()->m_WaterHeight;
+
+		for (ssize_t j = 0; j < h; ++j)
+		{
+			// Work backwards to vertically flip the image.
+			unsigned char* dataPtr = img + 3 * (h - j - 1) * dimension;
+			for (ssize_t i = 0; i < w; ++i)
+			{
+				float avgHeight = (terrain->GetVertexGroundLevel(i, j)
+					+ terrain->GetVertexGroundLevel(i + 1, j)
+					+ terrain->GetVertexGroundLevel(i, j + 1)
+					+ terrain->GetVertexGroundLevel(i + 1, j + 1)
+					) / 4.0f;
+
+				if (avgHeight < waterHeight && avgHeight > waterHeight - shallowPassageHeight)
+				{
+					// shallow water
+					*dataPtr++ = 0x70;
+					*dataPtr++ = 0x98;
+					*dataPtr++ = 0xc0;
+				}
+				else if (avgHeight < waterHeight)
+				{
+					// Set water as constant color for consistency on different maps
+					*dataPtr++ = 0x50;
+					*dataPtr++ = 0x78;
+					*dataPtr++ = 0xa0;
+				}
+				else
+				{
+					int hmap = ((int)terrain->GetHeightMap()[j * dimension + i]) >> 8;
+					float scale = float((hmap / 3) + 170) / 255.0f;
+
+					u32 color = 0xFFFFFFFF;
+
+					CMiniPatch* mp = terrain->GetTile(i, j);
+					if (mp)
+					{
+						CTerrainTextureEntry* tex = mp->GetTextureEntry();
+						if (tex)
+						{
+							color = tex->GetBaseColor();
+						}
+					}
+
+					// Convert 
+					*dataPtr++ = unsigned char(float(color & 0xff) * scale);
+					*dataPtr++ = unsigned char(float((color >> 8) & 0xff) * scale);
+					*dataPtr++ = unsigned char(float((color >> 16) & 0xff) * scale);
+				}
+			}
+		}
+	}
+		
+	msg->imageBytes = static_cast<void*>(img);
+	msg->dimension = dimension;
 }
 
 QUERYHANDLER(GetRMSData)
