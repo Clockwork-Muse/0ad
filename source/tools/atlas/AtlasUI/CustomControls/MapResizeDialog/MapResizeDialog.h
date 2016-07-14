@@ -19,6 +19,7 @@
 #define INCLUDED_MAPRESIZEDIALOG
 
 #include <wx/dialog.h>
+#include "PsuedoMiniMapPanel.h"
 
 class MapResizeDialog : public wxDialog
 {
@@ -29,6 +30,10 @@ public:
 	 * Returns selected new size.
 	 */
 	size_t GetNewSize() const;
+	/**
+	 * Returns the offset from center.
+	 */
+	wxPoint GetOffset() const;
 
 private:
 	void OnCancel(wxCommandEvent& evt);
@@ -36,6 +41,7 @@ private:
 	void OnListBox(wxCommandEvent& evt);
 
 	size_t m_NewSize;
+	PsuedoMiniMapPanel* m_MiniMap;
 
 	DECLARE_EVENT_TABLE();
 };

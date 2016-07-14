@@ -218,7 +218,7 @@ MESSAGEHANDLER(ImportHeightmap)
 
 	// resize terrain to heightmap size
 	CTerrain* terrain = g_Game->GetWorld()->GetTerrain();
-	terrain->Resize(terrainSize / PATCH_SIZE);
+	terrain->ResizeRecenter(terrainSize / PATCH_SIZE);
 
 	// copy heightmap data into map
 	u16* heightmap = g_Game->GetWorld()->GetTerrain()->GetHeightMap();
@@ -403,6 +403,7 @@ QUERYHANDLER(GetCurrentMapSize)
 BEGIN_COMMAND(ResizeMap)
 {
 	int m_OldTiles, m_NewTiles;
+	int m_OffsetX, m_OffsetY;
 
 	cResizeMap()
 	{
@@ -419,11 +420,12 @@ BEGIN_COMMAND(ResizeMap)
 		g_Game->GetView()->GetLOSTexture().MakeDirty();
 	}
 
-	void ResizeTerrain(int tiles)
+	void ResizeTerrain(int tiles, int offsetX, int offsetY)
 	{
 		CTerrain* terrain = g_Game->GetWorld()->GetTerrain();
 
-		terrain->Resize(tiles / PATCH_SIZE);
+		// Need to flip offset of vertical offset, due to screen mapping order.
+		terrain->ResizeRecenter(tiles / PATCH_SIZE, offsetX / PATCH_SIZE, -offsetY / PATCH_SIZE);
 
 		MakeDirty();
 	}
@@ -434,24 +436,27 @@ BEGIN_COMMAND(ResizeMap)
 		if (!cmpTerrain)
 		{
 			m_OldTiles = m_NewTiles = 0;
+			m_OffsetX = m_OffsetY = 0;
 		}
 		else
 		{
 			m_OldTiles = (int)cmpTerrain->GetTilesPerSide();
 			m_NewTiles = msg->tiles;
+			m_OffsetX = msg->offsetX;
+			m_OffsetY = msg->offsetY;
 		}
 
-		ResizeTerrain(m_NewTiles);
+		ResizeTerrain(m_NewTiles, m_OffsetX, m_OffsetY);
 	}
 
 	void Undo()
 	{
-		ResizeTerrain(m_OldTiles);
+		ResizeTerrain(m_OldTiles, -m_OffsetX, -m_OffsetY);
 	}
 
 	void Redo()
 	{
-		ResizeTerrain(m_NewTiles);
+		ResizeTerrain(m_NewTiles, m_OffsetX, m_OffsetY);
 	}
 };
 END_COMMAND(ResizeMap)

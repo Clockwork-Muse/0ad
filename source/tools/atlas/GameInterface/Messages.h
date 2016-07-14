@@ -212,6 +212,8 @@ QUERY(GetRMSData,
 
 COMMAND(ResizeMap, NOMERGE,
 		((int, tiles))
+		((int, offsetX))
+		((int, offsetY))
 		);
 
 QUERY(VFSFileExists,

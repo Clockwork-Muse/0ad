@@ -290,8 +290,8 @@ void TerrainSidebar::OnResizeMap(wxCommandEvent& WXUNUSED(evt))
 
 	if (dlg.ShowModal() != wxID_OK)
 		return;
-	
-	POST_COMMAND(ResizeMap, (dlg.GetNewSize()));
+	wxPoint offset = dlg.GetOffset();
+	POST_COMMAND(ResizeMap, (dlg.GetNewSize(), offset.x, offset.y));
 }
 
 BEGIN_EVENT_TABLE(TerrainSidebar, Sidebar)

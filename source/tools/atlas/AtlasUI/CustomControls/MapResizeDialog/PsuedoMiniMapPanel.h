@@ -15,6 +15,10 @@
 * along with 0 A.D.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+
+#ifndef INCLUDED_PSUEDOMINIMAPPANEL
+#define INCLUDED_PSUEDOMINIMAPPANEL
+
 #include <wx/panel.h>
 
 class PsuedoMiniMapPanel : public wxPanel
@@ -26,6 +30,8 @@ public:
 	void EraseBackground(wxEraseEvent& evt);
 
 	void OnNewSize(wxCommandEvent& evt);
+
+	wxPoint GetOffset() const;
 private:
 	void OnMouseDown(wxMouseEvent& evt);
 	void OnMouseUp(wxMouseEvent& evt);
@@ -38,10 +44,12 @@ private:
 
 	wxPoint m_LastMousePos;
 	bool m_Dragging;
-
 	wxPoint m_SelectionCenter;
 	int m_SelectionRadius;
 	bool m_SameOrGrowing;
+	int m_NewSize;
 
 	DECLARE_EVENT_TABLE();
 };
+
+#endif // INCLUDED_PSUEDOMINIMAPPANEL

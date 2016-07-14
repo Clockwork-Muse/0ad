@@ -98,8 +98,9 @@ public:
 	// should be in the direction (1,-1); false if it should be (1,1)
 	bool GetTriangulationDir(ssize_t i, ssize_t j) const;
 
-	// resize this terrain such that each side has given number of patches
-	void Resize(ssize_t size);
+	// resize this terrain such that each side has given number of patches,
+	// with the center offset in patches from the larger of the two sizes.
+	void ResizeRecenter(ssize_t size, int horizontalOffset = 0, int verticalOffset = 0);
 
 	// set up a new heightmap from 16 bit data; assumes heightmap matches current terrain size
 	void SetHeightMap(u16* heightmap);
