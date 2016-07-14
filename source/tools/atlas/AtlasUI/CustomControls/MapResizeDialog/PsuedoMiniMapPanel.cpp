@@ -66,7 +66,7 @@ PsuedoMiniMapPanel::PsuedoMiniMapPanel(wxWindow* parent, int currentSize)
 	: wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(PanelRadius * 2 + 1, PanelRadius * 2 + 1)),
 	m_CurrentSize(currentSize), m_ScreenTones(),
 	m_LastMousePos(-1, -1), m_Dragging(false),
-	m_SelectionRadius(PanelRadius), m_SelectionCenter(PanelCenter), m_SameOrGrowing(true)
+	m_SelectionRadius(PanelRadius), m_SelectionCenter(PanelCenter), m_SameOrGrowing(true), m_NewSize(currentSize)
 {
 
 	AtlasMessage::qGetMiniMapDisplay qryBackground;
@@ -81,16 +81,29 @@ PsuedoMiniMapPanel::PsuedoMiniMapPanel(wxWindow* parent, int currentSize)
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
 }
 
+wxPoint PsuedoMiniMapPanel::GetOffset() const 
+{
+	// Since offset is from center, amplitude is (at most) half the largest size.
+	int size = std::max(m_CurrentSize, m_NewSize) / 2;
+	// If the map is growing, the display is opposite what the actual offset is.
+	float scalar = (m_SameOrGrowing ? 1.0 : -1.0) / PanelRadius * size;
+	// Rebase offsets to center.
+	int hOffset = m_SelectionCenter.x - PanelCenter.x;
+	int vOffset = m_SelectionCenter.y - PanelCenter.y;
+	return wxPoint(scalar * hOffset, scalar * vOffset);
+}
+
 void PsuedoMiniMapPanel::OnNewSize(wxCommandEvent& evt)
 {
 	if (!evt.IsSelection())
 		return;
 
-	int newSize = wxAtoi(static_cast<wxStringClientData*>(evt.GetClientObject())->GetData());
+	evt.Skip();
 
-	m_SameOrGrowing = newSize >= m_CurrentSize;
-	m_SelectionRadius = double(std::min(newSize, m_CurrentSize)) / std::max(newSize, m_CurrentSize) * PanelRadius;
+	m_NewSize = wxAtoi(static_cast<wxStringClientData*>(evt.GetClientObject())->GetData());
 
+	m_SameOrGrowing = m_NewSize >= m_CurrentSize;
+	m_SelectionRadius = double(std::min(m_NewSize, m_CurrentSize)) / std::max(m_NewSize, m_CurrentSize) * PanelRadius;
 	if (!m_SameOrGrowing && m_ScreenTones.find(m_SelectionRadius) == m_ScreenTones.cend())
 	{
 		wxImage overlay = wxImage(PanelRadius * 4, PanelRadius * 4);
@@ -177,8 +190,7 @@ void PsuedoMiniMapPanel::PaintEvent(wxPaintEvent& WXUNUSED(evt))
 
 		const wxPen BorderPen(*wxWHITE, 2);
 		dc.SetPen(BorderPen);
-		dc.DrawCircle(m_SelectionCenter, m_SelectionRadius);
-		
+		dc.DrawCircle(m_SelectionCenter, m_SelectionRadius);		
 	}
 	else
 	{
@@ -210,6 +222,7 @@ void PsuedoMiniMapPanel::EraseBackground(wxEraseEvent& WXUNUSED(evt))
 }
 
 BEGIN_EVENT_TABLE(PsuedoMiniMapPanel, wxPanel)
+EVT_LEAVE_WINDOW(PsuedoMiniMapPanel::OnMouseUp)
 EVT_LEFT_DOWN(PsuedoMiniMapPanel::OnMouseDown)
 EVT_LEFT_UP(PsuedoMiniMapPanel::OnMouseUp)
 EVT_RIGHT_DOWN(PsuedoMiniMapPanel::OnMouseDown)

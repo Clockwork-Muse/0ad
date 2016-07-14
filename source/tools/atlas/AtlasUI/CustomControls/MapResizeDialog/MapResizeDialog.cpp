@@ -24,17 +24,15 @@
 #include "GameInterface/Messages.h"
 
 #include <wx/statline.h>
-#include "PsuedoMiniMapPanel.h"
 
 MapResizeDialog::MapResizeDialog(wxWindow* parent)
-	: wxDialog(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxCAPTION | wxRESIZE_BORDER),
-	m_NewSize(0)
+	: wxDialog(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxCAPTION | wxRESIZE_BORDER)
 {
 	Freeze();
 
 	AtlasMessage::qGetCurrentMapSize qrySize;
 	qrySize.Post();
-	int currentSize = qrySize.size;
+	m_NewSize = qrySize.size;
 
 	SetTitle(_("Resize map"));
 	wxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -52,16 +50,16 @@ MapResizeDialog::MapResizeDialog(wxWindow* parent)
 	{   
 		wxString size(s["Tiles"]);
 		listBox->Append(wxString(s["Name"]), new wxStringClientData(size));
-		if (currentSize == wxAtoi(size))
+		if (m_NewSize == wxAtoi(size))
 			listBox->SetSelection(listBox->GetCount() - 1);
 	}
 	listAndMap->Add(listBox, wxSizerFlags().Align(wxALIGN_LEFT).Proportion(1).Expand());
 	listAndMap->AddSpacer(10);
 
-	PsuedoMiniMapPanel* miniMap = new PsuedoMiniMapPanel(this, currentSize);
-	listBox->Bind(wxEVT_LISTBOX, &PsuedoMiniMapPanel::OnNewSize, miniMap);
+	m_MiniMap = new PsuedoMiniMapPanel(this, m_NewSize);
+	listBox->Bind(wxEVT_LISTBOX, &PsuedoMiniMapPanel::OnNewSize, m_MiniMap);
 
-	listAndMap->Add(miniMap, wxSizerFlags());
+	listAndMap->Add(m_MiniMap, wxSizerFlags());
 	sizer->Add(listAndMap, wxSizerFlags().Proportion(1).Expand().Border(wxLEFT | wxRIGHT, 10));
 
 	sizer->AddSpacer(5);
@@ -85,13 +83,17 @@ size_t MapResizeDialog::GetNewSize() const
 	return m_NewSize;
 }
 
+wxPoint MapResizeDialog::GetOffset() const
+{
+	return m_MiniMap->GetOffset();
+}
+
 void MapResizeDialog::OnListBox(wxCommandEvent& evt)
 {
 	if (!evt.IsSelection())
 		return;
 
 	m_NewSize = wxAtoi(static_cast<wxStringClientData*>(evt.GetClientObject())->GetData());
-	
 	if (evt.GetEventType() == wxEVT_COMMAND_LISTBOX_DOUBLECLICKED)
 	{
 		EndModal(wxID_OK);
