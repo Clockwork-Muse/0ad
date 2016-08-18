@@ -38,9 +38,7 @@ private:
 	void OnMouseMove(wxMouseEvent& evt);
 
 	const int m_CurrentSize;
-	wxImage m_Background;
-	std::map<int, wxBitmap> m_ScreenTones;
-	std::map<int, wxBitmap> m_Backgrounds;
+	wxBitmap m_MiniMap;
 
 	wxPoint m_LastMousePos;
 	bool m_Dragging;
