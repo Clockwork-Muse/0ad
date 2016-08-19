@@ -35,15 +35,18 @@ namespace
 	const char* ScreenToneColor[] =
 	{
 		/* columns rows colors chars-per-pixel */
-		"4 4 3 1",
-		"O c Transparent",
+		"8 8 2 1",
+		"O c White",
 		"X c Black",
-		"Y c Blue",
 		/* pixels */
-		"OOOO",
-		"OXXO",
-		"OXXO",
-		"OOOY"
+		"OOOOOOOO",
+		"OXXOOXXO",
+		"OXXOOXXO",
+		"OOOOOOOO",
+		"OOOOOOOO",
+		"OXXOOXXO",
+		"OXXOOXXO",
+		"OOOOOOOO"
 	};
 	const wxBitmap ScreenToneMask(ScreenToneColor);
 	const wxPen ScreenTone = wxPen(ScreenToneMask, PanelRadius);
@@ -162,6 +165,9 @@ void PsuedoMiniMapPanel::PaintEvent(wxPaintEvent& WXUNUSED(evt))
 
 	// Manually double-buffering for transparent image pieces and to avoid flicker.
 	wxImage image = wxImage(PanelRadius * 2 + 1, PanelRadius * 2 + 1, true);
+	unsigned char* aData = new unsigned char[(PanelRadius * 2 + 1) * (PanelRadius * 2 + 1)];
+	memset(aData, wxIMAGE_ALPHA_TRANSPARENT, (PanelRadius * 2 + 1) * (PanelRadius * 2 + 1));
+	image.SetAlpha(aData);
 	wxGraphicsContext* gc = wxGraphicsContext::Create(image);
 
 	if (m_SameOrGrowing)
@@ -185,17 +191,20 @@ void PsuedoMiniMapPanel::PaintEvent(wxPaintEvent& WXUNUSED(evt))
 		memset(alphaData, wxIMAGE_ALPHA_TRANSPARENT, 8 * 8);
 		tone.SetAlpha(alphaData);
 		wxGraphicsContext* d = wxGraphicsContext::Create(tone);
-		d->SetBrush(*wxBLACK_BRUSH);
-		d->DrawRectangle(2, 2, 4, 4);
-		d->SetBrush(*wxYELLOW_BRUSH);
-		d->DrawRectangle(7, 7, 4, 4);
+		d->SetBrush(*wxWHITE_BRUSH);
+		d->DrawRectangle(0, 0, 8, 8);
 		
 		delete d;
 
 		gc->DrawBitmap(m_MiniMap, 0, 0, PanelRadius * 2 + 1, PanelRadius * 2 + 1);
 		// "fade out" trimmed areas by drawing a screentone ring ring.
 		gc->SetBrush(*wxTRANSPARENT_BRUSH);
-		gc->DrawBitmap(wxBitmap(tone), PanelRadius - 10, PanelRadius - 10, 20, 20);
+		wxPen p = wxPen(*wxGREEN, PanelRadius, wxPENSTYLE_STIPPLE_MASK_OPAQUE);
+		wxBitmap t = wxBitmap(tone);
+		t.SetMask(new wxMask(ScreenToneMask));
+		p.SetStipple(t);
+		gc->SetPen(p);
+		gc->DrawEllipse(PanelRadius * .5, PanelRadius * .5, PanelRadius * 1.5, PanelRadius * 1.5);
 		//gc->SetPen(tone);
 		//gc->DrawEllipse(m_SelectionCenter.x - m_SelectionRadius - PanelRadius, m_SelectionCenter.y - m_SelectionRadius - PanelRadius, (m_SelectionRadius + PanelRadius) * 2, (m_SelectionRadius + PanelRadius) * 2);
 	}
