@@ -18,6 +18,7 @@
 #include "precompiled.h"
 
 #include "MessageHandler.h"
+#include "../MessagePasser.h"
 #include "../GameLoop.h"
 #include "../CommandProc.h"
 
@@ -42,10 +43,12 @@
 #include "renderer/WaterManager.h"
 #include "scriptinterface/ScriptInterface.h"
 #include "simulation2/Simulation2.h"
+#include "simulation2/components/ICmpOwnership.h"
 #include "simulation2/components/ICmpPlayer.h"
 #include "simulation2/components/ICmpPlayerManager.h"
 #include "simulation2/components/ICmpPosition.h"
 #include "simulation2/components/ICmpRangeManager.h"
+#include "simulation2/components/ICmpTemplateManager.h"
 #include "simulation2/components/ICmpTerrain.h"
 #include "simulation2/system/ParamNode.h"
 
@@ -402,8 +405,35 @@ QUERYHANDLER(GetCurrentMapSize)
 
 BEGIN_COMMAND(ResizeMap)
 {
-	int m_OldTiles, m_NewTiles;
+	bool Within(const CFixedVector3D& test, const int centerX, const int centerZ, const int radius)
+	{
+		int dx = abs(test.X.ToInt_RoundToZero() - centerX);
+		if (dx > radius)
+			return false;
+		int dz = abs(test.Z.ToInt_RoundToZero() - centerZ);
+		if (dz > radius)
+			return false;
+		if (dx + dz <= radius)
+			return true;
+		return (dx * dx + dz * dz <= radius * radius);
+	}
+
+	struct DeletedObject
+	{
+		entity_id_t entityId;
+		CStr templateName;
+		int32_t owner;
+		CFixedVector3D pos;
+		CFixedVector3D rot;
+	};
+
+	int m_OldPatches, m_NewPatches;
 	int m_OffsetX, m_OffsetY;
+
+	std::vector<DeletedObject> m_DeletedObjects;
+
+	std::map<entity_id_t, CFixedVector3D> m_OldPositions;
+	std::map<entity_id_t, CFixedVector3D> m_NewPositions;
 
 	cResizeMap()
 	{
@@ -420,43 +450,147 @@ BEGIN_COMMAND(ResizeMap)
 		g_Game->GetView()->GetLOSTexture().MakeDirty();
 	}
 
-	void ResizeTerrain(int tiles, int offsetX, int offsetY)
+	void ResizeTerrain(int patches, int offsetX, int offsetY)
 	{
 		CTerrain* terrain = g_Game->GetWorld()->GetTerrain();
+		terrain->ResizeRecenter(patches, offsetX, offsetY);
+	}
+	
+	void DeleteAll(const std::vector<DeletedObject>& deletedObjects)
+	{
+		for (const DeletedObject& deleted : deletedObjects) {
+			g_Game->GetSimulation2()->DestroyEntity(deleted.entityId);
+		}
 
-		// Need to flip offset of vertical offset, due to screen mapping order.
-		terrain->ResizeRecenter(tiles / PATCH_SIZE, offsetX / PATCH_SIZE, -offsetY / PATCH_SIZE);
+		g_Game->GetSimulation2()->FlushDestroyedEntities();
+	}
 
-		MakeDirty();
+	void UndeleteAll(const std::vector<DeletedObject>& deletedObjects)
+	{
+		CSimulation2& sim = *g_Game->GetSimulation2();
+
+		for (const DeletedObject& deleted : deletedObjects)
+		{
+			entity_id_t ent = sim.AddEntity(deleted.templateName.FromUTF8(), deleted.entityId);
+			if (ent == INVALID_ENTITY)
+			{
+				LOGERROR("Failed to load entity template '%s'", deleted.templateName.c_str());
+			}
+			else
+			{
+				CmpPtr<ICmpPosition> cmpPosition(sim, deleted.entityId);
+				if (cmpPosition)
+				{
+					cmpPosition->JumpTo(deleted.pos.X, deleted.pos.Z);
+					cmpPosition->SetXZRotation(deleted.rot.X, deleted.rot.Z);
+					cmpPosition->SetYRotation(deleted.rot.Y);
+				}
+
+				CmpPtr<ICmpOwnership> cmpOwnership(sim, deleted.entityId);
+				if (cmpOwnership)
+					cmpOwnership->SetOwner(deleted.owner);
+			}
+		}
+	}
+
+	void SetPosition(const std::map<entity_id_t, CFixedVector3D>& movedObjects)
+	{
+		for (auto const& kv : movedObjects)
+		{
+			entity_id_t id = kv.first;
+			CFixedVector3D position = kv.second;
+			CmpPtr<ICmpPosition> cmpPosition(*g_Game->GetSimulation2(), id);
+			ENSURE(cmpPosition);
+			cmpPosition->JumpTo(position.X, position.Z);
+		}
 	}
 
 	void Do()
 	{
-		CmpPtr<ICmpTerrain> cmpTerrain(*g_Game->GetSimulation2(), SYSTEM_ENTITY);
+		CSimulation2& sim = *g_Game->GetSimulation2();
+		CmpPtr<ICmpTemplateManager> cmpTemplateManager(sim, SYSTEM_ENTITY);
+		ENSURE(cmpTemplateManager);
+
+		CmpPtr<ICmpTerrain> cmpTerrain(sim, SYSTEM_ENTITY);
 		if (!cmpTerrain)
 		{
-			m_OldTiles = m_NewTiles = 0;
+			m_OldPatches = m_NewPatches = 0;
 			m_OffsetX = m_OffsetY = 0;
 		}
 		else
 		{
-			m_OldTiles = (int)cmpTerrain->GetTilesPerSide();
-			m_NewTiles = msg->tiles;
-			m_OffsetX = msg->offsetX;
-			m_OffsetY = msg->offsetY;
+			m_OldPatches = (int)cmpTerrain->GetTilesPerSide() / PATCH_SIZE;
+			m_NewPatches = msg->tiles / PATCH_SIZE;
+			m_OffsetX = msg->offsetX / PATCH_SIZE;
+			// Need to flip direction of vertical offset, due to screen mapping order.
+			m_OffsetY = -(msg->offsetY / PATCH_SIZE);
 		}
 
-		ResizeTerrain(m_NewTiles, m_OffsetX, m_OffsetY);
+		const int radiusInTerrainUnits = m_NewPatches * PATCH_SIZE * TERRAIN_TILE_SIZE / 2 * (1.f - 1e-6f);
+		// Opposite direction offset, as we move the destination onto the source, not the source into the destination.
+		const int mapCenterX = (m_OldPatches / 2 - m_OffsetX) * PATCH_SIZE * TERRAIN_TILE_SIZE;
+		const int mapCenterZ = (m_OldPatches / 2 - m_OffsetY) * PATCH_SIZE * TERRAIN_TILE_SIZE;
+		// The offset to move units by is opposite the direction the map is moved, and from the corner.
+		const int offsetX = ((m_NewPatches - m_OldPatches) / 2 + m_OffsetX) * PATCH_SIZE * TERRAIN_TILE_SIZE;
+		const int offsetZ = ((m_NewPatches - m_OldPatches) / 2 + m_OffsetY) * PATCH_SIZE * TERRAIN_TILE_SIZE;
+		const CFixedVector3D offset = CFixedVector3D(fixed::FromInt(offsetX), fixed::FromInt(0), fixed::FromInt(offsetZ));
+
+		const CSimulation2::InterfaceListUnordered& ents = sim.GetEntitiesWithInterfaceUnordered(IID_Selectable);
+
+		for (auto const& kv : ents) {
+
+			const entity_id_t entityId = kv.first;
+
+			CmpPtr<ICmpPosition> cmpPosition(sim, entityId);
+
+			if (cmpPosition && cmpPosition->IsInWorld() && Within(cmpPosition->GetPosition(), mapCenterX, mapCenterZ, radiusInTerrainUnits))
+			{
+				CFixedVector3D position = cmpPosition->GetPosition();
+
+				m_NewPositions[entityId] = position + offset;
+				m_OldPositions[entityId] = position;
+			}
+			else
+			{
+				DeletedObject deleted;
+				deleted.entityId = entityId;
+				deleted.templateName = cmpTemplateManager->GetCurrentTemplateName(entityId);
+
+				// If the entity has a position, but the ending position is not valid;
+				if (cmpPosition)
+				{
+					deleted.pos = cmpPosition->GetPosition();
+					deleted.rot = cmpPosition->GetRotation();
+				}
+
+				CmpPtr<ICmpOwnership> cmpOwnership(sim, entityId);
+				if (cmpOwnership)
+					deleted.owner = cmpOwnership->GetOwner();
+
+				m_DeletedObjects.push_back(deleted);
+			}
+		}
+
+		DeleteAll(m_DeletedObjects);
+		ResizeTerrain(m_NewPatches, m_OffsetX, m_OffsetY);
+		SetPosition(m_NewPositions);
+		MakeDirty();
 	}
 
 	void Undo()
 	{
-		ResizeTerrain(m_OldTiles, -m_OffsetX, -m_OffsetY);
+		ResizeTerrain(m_OldPatches, -m_OffsetX, -m_OffsetY);
+		UndeleteAll(m_DeletedObjects);
+		SetPosition(m_OldPositions);
+		MakeDirty();
 	}
 
 	void Redo()
 	{
-		ResizeTerrain(m_NewTiles, m_OffsetX, m_OffsetY);
+		DeleteAll(m_DeletedObjects);
+		ResizeTerrain(m_NewPatches, m_OffsetX, m_OffsetY);
+		SetPosition(m_NewPositions);
+		MakeDirty();
 	}
 };
 END_COMMAND(ResizeMap)
