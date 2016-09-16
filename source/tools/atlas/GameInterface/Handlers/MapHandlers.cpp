@@ -432,8 +432,8 @@ BEGIN_COMMAND(ResizeMap)
 
 	std::vector<DeletedObject> m_DeletedObjects;
 
-	std::map<entity_id_t, CFixedVector3D> m_OldPositions;
-	std::map<entity_id_t, CFixedVector3D> m_NewPositions;
+	std::vector<std::pair<entity_id_t, CFixedVector3D>> m_OldPositions;
+	std::vector<std::pair<entity_id_t, CFixedVector3D>> m_NewPositions;
 
 	cResizeMap()
 	{
@@ -493,7 +493,7 @@ BEGIN_COMMAND(ResizeMap)
 		}
 	}
 
-	void SetPosition(const std::map<entity_id_t, CFixedVector3D>& movedObjects)
+	void SetPosition(const std::vector<std::pair<entity_id_t, CFixedVector3D>>& movedObjects)
 	{
 		for (auto const& kv : movedObjects)
 		{
@@ -547,8 +547,8 @@ BEGIN_COMMAND(ResizeMap)
 			{
 				CFixedVector3D position = cmpPosition->GetPosition();
 
-				m_NewPositions[entityId] = position + offset;
-				m_OldPositions[entityId] = position;
+				m_NewPositions.emplace_back(entityId, position + offset);
+				m_OldPositions.emplace_back(entityId, position);
 			}
 			else
 			{
