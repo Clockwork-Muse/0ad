@@ -22,7 +22,6 @@
 #include "../GameLoop.h"
 #include "../CommandProc.h"
 
-#include "graphics/Patch.h"
 #include "graphics/GameView.h"
 #include "graphics/LOSTexture.h"
 #include "graphics/MapWriter.h"
