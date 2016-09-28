@@ -36,7 +36,7 @@ MapResizeDialog::MapResizeDialog(wxWindow* parent)
 
 	SetTitle(_("Resize map"));
 	wxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-	wxStaticText* label = new wxStaticText(this, wxID_ANY, _("Select new map size. WARNING: This probably only works reliably on blank maps."), wxDefaultPosition, wxDefaultSize);
+	wxStaticText* label = new wxStaticText(this, wxID_ANY, _("Select new map size."), wxDefaultPosition, wxDefaultSize);
 	sizer->Add(label, wxSizerFlags().Align(wxALIGN_CENTER_HORIZONTAL).Border(wxALL, 10));
 
 	wxBoxSizer* listAndMap = new wxBoxSizer(wxHORIZONTAL);

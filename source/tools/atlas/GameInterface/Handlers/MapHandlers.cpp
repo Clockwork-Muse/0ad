@@ -430,6 +430,9 @@ BEGIN_COMMAND(ResizeMap)
 	int m_OldPatches, m_NewPatches;
 	int m_OffsetX, m_OffsetY;
 
+	u16* m_Heightmap; 
+	CPatch*	m_Patches;
+
 	std::vector<DeletedObject> m_DeletedObjects;
 
 	std::vector<std::pair<entity_id_t, CFixedVector3D>> m_OldPositions;
@@ -437,6 +440,12 @@ BEGIN_COMMAND(ResizeMap)
 
 	cResizeMap()
 	{
+	}
+
+	~cResizeMap()
+	{
+		delete m_Heightmap;
+		delete m_Patches;
 	}
 
 	void MakeDirty()
@@ -524,6 +533,19 @@ BEGIN_COMMAND(ResizeMap)
 			m_OffsetX = msg->offsetX / PATCH_SIZE;
 			// Need to flip direction of vertical offset, due to screen mapping order.
 			m_OffsetY = -(msg->offsetY / PATCH_SIZE);
+
+			CTerrain* terrain = cmpTerrain->GetCTerrain();
+			m_Heightmap = new u16[(m_OldPatches * PATCH_SIZE + 1) * (m_OldPatches * PATCH_SIZE + 1)];
+			std::copy_n(terrain->GetHeightMap(), (m_OldPatches * PATCH_SIZE + 1) * (m_OldPatches * PATCH_SIZE + 1), m_Heightmap);
+			m_Patches = new CPatch[m_OldPatches * m_OldPatches];
+			for (ssize_t j = 0; j < m_OldPatches; ++j) {
+				for (ssize_t i = 0; i < m_OldPatches; ++i)
+				{
+					CPatch& src = *(terrain->GetPatch(i, j));
+					CPatch& dst = m_Patches[j * m_OldPatches + i];
+					std::copy_n(&(src.m_MiniPatches[0][0]), PATCH_SIZE * PATCH_SIZE, &(dst.m_MiniPatches[0][0]));
+				}
+			}
 		}
 
 		const int radiusInTerrainUnits = m_NewPatches * PATCH_SIZE * TERRAIN_TILE_SIZE / 2 * (1.f - 1e-6f);
@@ -579,7 +601,28 @@ BEGIN_COMMAND(ResizeMap)
 
 	void Undo()
 	{
-		ResizeTerrain(m_OldPatches, -m_OffsetX, -m_OffsetY);
+		if (m_Heightmap == nullptr || m_Patches == nullptr)
+		{	
+			// If there previously was no data, just resize to old (probably not originally valid).
+			ResizeTerrain(m_OldPatches, -m_OffsetX, -m_OffsetY);
+		}
+		else
+		{
+			CSimulation2& sim = *g_Game->GetSimulation2();
+			CmpPtr<ICmpTerrain> cmpTerrain(sim, SYSTEM_ENTITY);
+			CTerrain* terrain = cmpTerrain->GetCTerrain();
+			
+			terrain->Initialize(m_OldPatches, m_Heightmap);
+			// Copy terrain data back.
+			for (ssize_t j = 0; j < m_OldPatches; ++j) {
+				for (ssize_t i = 0; i < m_OldPatches; ++i)
+				{
+					CPatch& src = m_Patches[j * m_OldPatches + i];
+					CPatch& dst = *(terrain->GetPatch(i, j));
+					std::copy_n(&(src.m_MiniPatches[0][0]), PATCH_SIZE * PATCH_SIZE, &(dst.m_MiniPatches[0][0]));
+				}
+			}
+		}
 		UndeleteAll(m_DeletedObjects);
 		SetPosition(m_OldPositions);
 		MakeDirty();
