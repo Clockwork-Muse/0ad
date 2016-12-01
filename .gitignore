@@ -73,3 +73,5 @@ long.*.po
 
 # OSX specific data
 .DS_Store
+libraries/win32/wxwidgets/
+binaries/system/
