@@ -543,7 +543,7 @@ BEGIN_COMMAND(ResizeMap)
 				{
 					CPatch& src = *(terrain->GetPatch(i, j));
 					CPatch& dst = m_Patches[j * m_OldPatches + i];
-					std::copy_n(&(src.m_MiniPatches[0][0]), PATCH_SIZE * PATCH_SIZE, &(dst.m_MiniPatches[0][0]));
+					std::copy_n(&src.m_MiniPatches[0][0], PATCH_SIZE * PATCH_SIZE, &dst.m_MiniPatches[0][0]);
 				}
 			}
 		}
@@ -619,7 +619,7 @@ BEGIN_COMMAND(ResizeMap)
 				{
 					CPatch& src = m_Patches[j * m_OldPatches + i];
 					CPatch& dst = *(terrain->GetPatch(i, j));
-					std::copy_n(&(src.m_MiniPatches[0][0]), PATCH_SIZE * PATCH_SIZE, &(dst.m_MiniPatches[0][0]));
+					std::copy_n(&src.m_MiniPatches[0][0], PATCH_SIZE * PATCH_SIZE, &dst.m_MiniPatches[0][0]);
 				}
 			}
 		}

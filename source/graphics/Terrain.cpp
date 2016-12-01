@@ -563,7 +563,7 @@ void CTerrain::ResizeRecenter(ssize_t size, int horizontalOffset, int verticalOf
 			// Incrementing offsets in source need to be adjusted to 0-based, since the X/ZSource variables are the new "0"
 			CPatch& src = m_Patches[(upperLeftZSource + (j - upperLeftZ)) * m_MapSizePatches + upperLeftXSource + (i - upperLeftX)];
 			CPatch& dst = newPatches[j * size + i];
-			std::copy_n(&(src.m_MiniPatches[0][0]), PATCH_SIZE * PATCH_SIZE, &(dst.m_MiniPatches[0][0]));
+			std::copy_n(&src.m_MiniPatches[0][0], PATCH_SIZE * PATCH_SIZE, &dst.m_MiniPatches[0][0]);
 		}
 		for (ssize_t i = 0; i < upperLeftX; ++i)
 		{
