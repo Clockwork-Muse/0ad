@@ -103,7 +103,7 @@ void PsuedoMiniMapPanel::OnNewSize(wxCommandEvent& evt)
 	m_NewSize = wxAtoi(static_cast<wxStringClientData*>(evt.GetClientObject())->GetData());
 
 	m_SameOrGrowing = m_NewSize >= m_CurrentSize;
-	m_SelectionRadius = double(std::min(m_NewSize, m_CurrentSize)) / std::max(m_NewSize, m_CurrentSize) * PanelRadius;
+    m_SelectionRadius = std::min(m_NewSize, m_CurrentSize) * PanelRadius / std::max(m_NewSize, m_CurrentSize);
 	if (!m_SameOrGrowing && m_ScreenTones.find(m_SelectionRadius) == m_ScreenTones.cend())
 	{
 		wxImage overlay = wxImage(PanelRadius * 4, PanelRadius * 4);
