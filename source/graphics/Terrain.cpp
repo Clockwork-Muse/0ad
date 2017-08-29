@@ -501,16 +501,15 @@ bool CTerrain::GetTriangulationDir(ssize_t i, ssize_t j) const
 // The offset is in patches from the center of the source.
 void CTerrain::ResizeRecenter(ssize_t size, int horizontalOffset, int verticalOffset)
 {
-	if (size == m_MapSizePatches &&
-		horizontalOffset == 0 && 
-		verticalOffset == 0) {
+	if (size == m_MapSizePatches && horizontalOffset == 0 && verticalOffset == 0) {
 		// inexplicable request to resize terrain to the same size and location .. ignore it
 		return;
 	}
 
 	if (!m_Heightmap ||
 		std::abs(horizontalOffset) > std::max(size, m_MapSizePatches) / 2 ||
-		std::abs(verticalOffset) > std::max(size, m_MapSizePatches) / 2) {
+		std::abs(verticalOffset) > std::max(size, m_MapSizePatches) / 2) 
+    {
 		// not yet created a terrain, or offsetting outside the current source; 
 		// build a default terrain of the given size now
 		Initialize(size, 0);
@@ -556,7 +555,8 @@ void CTerrain::ResizeRecenter(ssize_t size, int horizontalOffset, int verticalOf
 	}
 
 	// now build new patches
-	for (ssize_t j = upperLeftZ; j < upperLeftZ + height; ++j) {
+	for (ssize_t j = upperLeftZ; j < upperLeftZ + height; ++j) 
+    {
 		for (ssize_t i = upperLeftX; i < upperLeftX + width; ++i)
 		{
 			// copy over texture data from existing tiles, if possible
@@ -567,9 +567,11 @@ void CTerrain::ResizeRecenter(ssize_t size, int horizontalOffset, int verticalOf
 		}
 		for (ssize_t i = 0; i < upperLeftX; ++i)
 		{
-			for (ssize_t patch_j = 0; patch_j < PATCH_SIZE; ++patch_j) {
+			for (ssize_t patch_j = 0; patch_j < PATCH_SIZE; ++patch_j) 
+            {
 				CMiniPatch& src = newPatches[j * size + upperLeftX].m_MiniPatches[patch_j][0];
-				for (ssize_t patch_i = 0; patch_i < PATCH_SIZE; ++patch_i) {
+				for (ssize_t patch_i = 0; patch_i < PATCH_SIZE; ++patch_i) 
+                {
 					CMiniPatch& dst = newPatches[j * size + i].m_MiniPatches[patch_j][patch_i];
 					dst = src;
 				}
@@ -577,9 +579,11 @@ void CTerrain::ResizeRecenter(ssize_t size, int horizontalOffset, int verticalOf
 		}
 		for (ssize_t i = upperLeftX + width; i < size; ++i)
 		{
-			for (ssize_t patch_j = 0; patch_j < PATCH_SIZE; ++patch_j) {
+			for (ssize_t patch_j = 0; patch_j < PATCH_SIZE; ++patch_j) 
+            {
 				CMiniPatch& src = newPatches[j * size + upperLeftX + width - 1].m_MiniPatches[patch_j][PATCH_SIZE - 1];
-				for (ssize_t patch_i = 0; patch_i < PATCH_SIZE; ++patch_i) {
+				for (ssize_t patch_i = 0; patch_i < PATCH_SIZE; ++patch_i) 
+                {
 					CMiniPatch& dst = newPatches[j * size + i].m_MiniPatches[patch_j][patch_i];
 					dst = src;
 				}
@@ -589,9 +593,12 @@ void CTerrain::ResizeRecenter(ssize_t size, int horizontalOffset, int verticalOf
 	for (ssize_t j = 0; j < upperLeftZ; ++j) {
 		CPatch* srcpatch = newPatches + (upperLeftZ * size);
 		CPatch* dstpatch = newPatches + j * size;
-		for (ssize_t i = 0; i < size; ++i){
-			for (ssize_t patch_j = 0; patch_j < PATCH_SIZE; ++patch_j) {
-				for (ssize_t patch_i = 0; patch_i < PATCH_SIZE; ++patch_i) {
+		for (ssize_t i = 0; i < size; ++i)
+        {
+			for (ssize_t patch_j = 0; patch_j < PATCH_SIZE; ++patch_j)
+            {
+				for (ssize_t patch_i = 0; patch_i < PATCH_SIZE; ++patch_i)
+                {
 					CMiniPatch& src = srcpatch->m_MiniPatches[0][patch_i];
 					CMiniPatch& dst = dstpatch->m_MiniPatches[patch_j][patch_i];
 					dst = src;
@@ -601,12 +608,16 @@ void CTerrain::ResizeRecenter(ssize_t size, int horizontalOffset, int verticalOf
 			++dstpatch;
 		}
 	}
-	for (ssize_t j = upperLeftZ + height; j < size; ++j) {
+	for (ssize_t j = upperLeftZ + height; j < size; ++j) 
+    {
 		CPatch* srcpatch = newPatches + ((upperLeftZ + height - 1) * size);
 		CPatch* dstpatch = newPatches + j * size;
-		for (ssize_t i = 0; i < size; ++i){
-			for (ssize_t patch_j = 0; patch_j < PATCH_SIZE; ++patch_j) {
-				for (ssize_t patch_i = 0; patch_i < PATCH_SIZE; ++patch_i) {
+		for (ssize_t i = 0; i < size; ++i)
+        {
+			for (ssize_t patch_j = 0; patch_j < PATCH_SIZE; ++patch_j) 
+            {
+				for (ssize_t patch_i = 0; patch_i < PATCH_SIZE; ++patch_i) 
+                {
 					CMiniPatch& src = srcpatch->m_MiniPatches[PATCH_SIZE - 1][patch_i];
 					CMiniPatch& dst = dstpatch->m_MiniPatches[patch_j][patch_i];
 					dst = src;
