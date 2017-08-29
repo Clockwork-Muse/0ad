@@ -18,9 +18,9 @@
 #include "precompiled.h"
 
 #include "MessageHandler.h"
-#include "../MessagePasser.h"
-#include "../GameLoop.h"
 #include "../CommandProc.h"
+#include "../GameLoop.h"
+#include "../MessagePasser.h"
 
 #include "graphics/GameView.h"
 #include "graphics/LOSTexture.h"
