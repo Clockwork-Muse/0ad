@@ -175,6 +175,11 @@ void PsuedoMiniMapPanel::OnMouseMove(wxMouseEvent& evt)
 	}
 }
 
+void PsuedoMiniMapPanel::OnMouseLeave(wxMouseEvent& evt)
+{
+    m_Dragging = false;
+}
+
 void PsuedoMiniMapPanel::PaintEvent(wxPaintEvent& WXUNUSED(evt))
 {
 	wxAutoBufferedPaintDC dca(this);
@@ -231,5 +236,6 @@ EVT_RIGHT_UP(PsuedoMiniMapPanel::OnMouseUp)
 EVT_MIDDLE_DOWN(PsuedoMiniMapPanel::OnMouseDown)
 EVT_MIDDLE_UP(PsuedoMiniMapPanel::OnMouseUp)
 EVT_MOTION(PsuedoMiniMapPanel::OnMouseMove)
+EVT_LEAVE_WINDOW(PsuedoMiniMapPanel::OnMouseLeave)
 EVT_PAINT(PsuedoMiniMapPanel::PaintEvent)
 END_EVENT_TABLE()

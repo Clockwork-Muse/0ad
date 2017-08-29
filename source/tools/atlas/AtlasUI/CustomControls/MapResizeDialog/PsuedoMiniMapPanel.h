@@ -36,6 +36,7 @@ private:
 	void OnMouseDown(wxMouseEvent& evt);
 	void OnMouseUp(wxMouseEvent& evt);
 	void OnMouseMove(wxMouseEvent& evt);
+    void OnMouseLeave(wxMouseEvent& evt);
 
 	const int m_CurrentSize;
 	wxImage m_Background;
