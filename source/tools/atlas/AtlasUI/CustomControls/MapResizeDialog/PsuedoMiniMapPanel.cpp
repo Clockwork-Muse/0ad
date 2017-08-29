@@ -23,7 +23,8 @@
 #include "GameInterface/MessagePasser.h"
 #include "ScenarioEditor/Tools/Common/Tools.h"
 
-#include <math.h>
+#include "math.h"
+
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
 #include <wx/defs.h> 
