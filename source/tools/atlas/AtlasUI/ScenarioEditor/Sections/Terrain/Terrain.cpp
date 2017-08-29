@@ -396,7 +396,7 @@ public:
 			wxSizer* imageSizer = new wxBoxSizer(wxVERTICAL);
 			imageSizer->Add(button, wxSizerFlags().Center());
 			imageSizer->Add(label, wxSizerFlags().Proportion(1).Center());
-			m_ItemSizer->Add(imageSizer, wxSizerFlags().Expand().Center());
+			m_ItemSizer->Add(imageSizer, wxSizerFlags().Expand());
 		}
 
 		m_ScrolledPanel->Fit();
