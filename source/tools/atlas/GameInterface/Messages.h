@@ -202,7 +202,7 @@ QUERY(GetCurrentMapSize,
 QUERY(GetMiniMapDisplay,
 		,
 		((int, dimension))
-		((void*, imageBytes))
+		((std::vector<unsigned char>, imageBytes))
 		);
 
 QUERY(GetRMSData,

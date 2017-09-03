@@ -72,11 +72,14 @@ PsuedoMiniMapPanel::PsuedoMiniMapPanel(wxWindow* parent, int currentSize)
 
 	AtlasMessage::qGetMiniMapDisplay qryBackground;
 	qryBackground.Post();
-	int dim = qryBackground.dimension;
-	unsigned char* data = static_cast<unsigned char*>((void*)qryBackground.imageBytes);
-	
-	m_Background = wxImage(dim, dim, data);
-	m_Background.Rescale(PanelRadius * 2, PanelRadius * 2, wxIMAGE_QUALITY_BOX_AVERAGE);
+    int dim = qryBackground.dimension;  
+    std::vector<unsigned char> imageBytes = *qryBackground.imageBytes;    
+
+    // Data is destined for a wxImage, which uses free.
+    unsigned char* data = static_cast<unsigned char*>(malloc(imageBytes.size()));
+    std::copy(imageBytes.cbegin(), imageBytes.cend(), data);
+    m_Background = wxImage(dim, dim, data);
+    m_Background.Rescale(PanelRadius * 2, PanelRadius * 2, wxIMAGE_QUALITY_BOX_AVERAGE);
 	m_Backgrounds[PanelRadius] = wxBitmap(m_Background);
 
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
