@@ -554,7 +554,7 @@ BEGIN_COMMAND(ResizeMap)
 
 		const CSimulation2::InterfaceListUnordered& ents = sim.GetEntitiesWithInterfaceUnordered(IID_Selectable);
 
-		for (auto const& kv : ents) {
+        for (std::pair<entity_id_t, IComponent*> const& kv : ents) {
 
 			const entity_id_t entityId = kv.first;
 
