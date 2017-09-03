@@ -373,9 +373,7 @@ QUERYHANDLER(GetMiniMapDisplay)
 				{
 					CTerrainTextureEntry* tex = mp->GetTextureEntry();
 					if (tex)
-					{
 						color = tex->GetBaseColor();
-					}
 				}
 
 				// Convert 
