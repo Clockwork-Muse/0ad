@@ -21,6 +21,7 @@
 
 #include "AtlasObject/AtlasObject.h"
 #include "GameInterface/Messages.h"
+#include "MapResizeDialog/MapResizeDialog.h"
 #include "ScenarioEditor/ScenarioEditor.h"
 #include "ScenarioEditor/Tools/Common/Tools.h"
 
@@ -47,7 +48,8 @@ enum
 	ID_SimSlow,
 	ID_SimPause,
 	ID_SimReset,
-	ID_OpenPlayerPanel
+    ID_OpenPlayerPanel,
+    ID_ResizeMap
 };
 
 enum
@@ -335,6 +337,14 @@ MapSidebar::MapSidebar(ScenarioEditor& scenarioEditor, wxWindow* sidebarContaine
 			_("Run selected random map script")), wxSizerFlags().Expand());
 	}
 
+    {
+        /////////////////////////////////////////////////////////////////////////
+        // Misc tools
+        wxSizer* sizer = new wxStaticBoxSizer(wxVERTICAL, scrolledWindow, _("Misc tools"));
+        sizer->Add(new wxButton(scrolledWindow, ID_ResizeMap, _("Resize map")), wxSizerFlags().Expand());
+        scrollSizer->Add(sizer, wxSizerFlags().Expand().Border(wxTOP, 10));
+    }
+
 	{
 		/////////////////////////////////////////////////////////////////////////
 		// Simulation buttons
@@ -571,6 +581,16 @@ void MapSidebar::OnOpenPlayerPanel(wxCommandEvent& WXUNUSED(evt))
 	m_ScenarioEditor.SelectPage(_T("PlayerSidebar"));
 }
 
+void MapSidebar::OnResizeMap(wxCommandEvent& WXUNUSED(evt))
+{
+    MapResizeDialog dlg(this);
+
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+    wxPoint offset = dlg.GetOffset();
+    POST_COMMAND(ResizeMap, (dlg.GetNewSize(), offset.x, offset.y));
+}
+
 BEGIN_EVENT_TABLE(MapSidebar, Sidebar)
 	EVT_COLLAPSIBLEPANE_CHANGED(wxID_ANY, MapSidebar::OnCollapse)
 	EVT_BUTTON(ID_SimPlay, MapSidebar::OnSimPlay)
@@ -580,5 +600,6 @@ BEGIN_EVENT_TABLE(MapSidebar, Sidebar)
 	EVT_BUTTON(ID_SimReset, MapSidebar::OnSimReset)
 	EVT_BUTTON(ID_RandomReseed, MapSidebar::OnRandomReseed)
 	EVT_BUTTON(ID_RandomGenerate, MapSidebar::OnRandomGenerate)
-	EVT_BUTTON(ID_OpenPlayerPanel, MapSidebar::OnOpenPlayerPanel)
+    EVT_BUTTON(ID_OpenPlayerPanel, MapSidebar::OnOpenPlayerPanel)
+    EVT_BUTTON(ID_ResizeMap, MapSidebar::OnResizeMap)
 END_EVENT_TABLE();

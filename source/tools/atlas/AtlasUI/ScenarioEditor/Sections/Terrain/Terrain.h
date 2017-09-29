@@ -30,7 +30,6 @@ protected:
 private:
 	void OnPassabilityChoice(wxCommandEvent& evt);
 	void OnShowPriorities(wxCommandEvent& evt);
-	void OnResizeMap(wxCommandEvent& evt);
 
 	wxChoice* m_PassabilityChoice;
 	TexturePreviewPanel* m_TexturePreview;

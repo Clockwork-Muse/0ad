@@ -23,7 +23,6 @@
 #include "ScenarioEditor/ScenarioEditor.h"
 #include "ScenarioEditor/Tools/Common/Brushes.h"
 #include "ScenarioEditor/Tools/Common/MiscState.h"
-#include "MapResizeDialog/MapResizeDialog.h"
 
 #include "GameInterface/Messages.h"
 
@@ -48,8 +47,7 @@ private:
 enum
 {
 	ID_Passability = 1,
-	ID_ShowPriorities,
-	ID_ResizeMap
+	ID_ShowPriorities
 };
 
 // Helper function for adding tooltips
@@ -247,15 +245,7 @@ TerrainSidebar::TerrainSidebar(ScenarioEditor& scenarioEditor, wxWindow* sidebar
 		visSizer->Add(Tooltipped(new wxCheckBox(scrolledWindow, ID_ShowPriorities, _("")),
 			_("Show terrain texture priorities")));
 	}
-
-	{
-		/////////////////////////////////////////////////////////////////////////
-		// Misc tools
-		wxSizer* sizer = new wxStaticBoxSizer(wxVERTICAL, scrolledWindow, _("Misc tools"));
-		sizer->Add(new wxButton(scrolledWindow, ID_ResizeMap, _("Resize map")), wxSizerFlags().Expand());
-		scrollSizer->Add(sizer, wxSizerFlags().Expand().Border(wxTOP, 10));
-	}
-
+    
 	m_BottomBar = new TerrainBottomBar(scenarioEditor, bottomBarContainer);
 }
 
@@ -284,20 +274,9 @@ void TerrainSidebar::OnShowPriorities(wxCommandEvent& evt)
 	POST_MESSAGE(SetViewParamB, (AtlasMessage::eRenderView::GAME, L"priorities", evt.IsChecked()));
 }
 
-void TerrainSidebar::OnResizeMap(wxCommandEvent& WXUNUSED(evt))
-{
-	MapResizeDialog dlg(this);
-
-	if (dlg.ShowModal() != wxID_OK)
-		return;
-	wxPoint offset = dlg.GetOffset();
-	POST_COMMAND(ResizeMap, (dlg.GetNewSize(), offset.x, offset.y));
-}
-
 BEGIN_EVENT_TABLE(TerrainSidebar, Sidebar)
 	EVT_CHOICE(ID_Passability, TerrainSidebar::OnPassabilityChoice)
 	EVT_CHECKBOX(ID_ShowPriorities, TerrainSidebar::OnShowPriorities)
-	EVT_BUTTON(ID_ResizeMap, TerrainSidebar::OnResizeMap)
 END_EVENT_TABLE();
 
 //////////////////////////////////////////////////////////////////////////

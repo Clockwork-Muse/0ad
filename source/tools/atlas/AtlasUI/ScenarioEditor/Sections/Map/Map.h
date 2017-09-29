@@ -40,7 +40,8 @@ private:
 	void OnSimReset(wxCommandEvent& evt);
 	void OnRandomReseed(wxCommandEvent& evt);
 	void OnRandomGenerate(wxCommandEvent& evt);
-	void OnOpenPlayerPanel(wxCommandEvent& evt);
+    void OnOpenPlayerPanel(wxCommandEvent& evt);
+    void OnResizeMap(wxCommandEvent& evt);
 	void UpdateSimButtons();
 
 	int m_SimState;
