@@ -33,18 +33,6 @@ namespace
 {
 	const int PanelRadius = 64 + 1;
 	const wxPoint PanelCenter = wxPoint(PanelRadius + 1, PanelRadius + 1);
-	const char* ScreenToneMask[] =
-	{
-		/* columns rows colors chars-per-pixel */
-		"4 4 2 1",
-		"X c White",
-		"O c Black",
-		/* pixels */
-		"OOOO",
-		"OXXO",
-		"OXXO",
-		"OOOO"
-	};
 	const wxPoint ScreenToneOffset(-2 * PanelRadius, -2 * PanelRadius);
 	const wxPen Rim(*wxBLACK, 3);
 	const wxPen BackgroundMask(*wxBLACK, 2 * PanelRadius);
@@ -113,7 +101,7 @@ void PsuedoMiniMapPanel::OnNewSize(wxCommandEvent& evt)
 		wxImage overlay = wxImage(PanelRadius * 4, PanelRadius * 4);
 		overlay.InitAlpha();
 		wxGraphicsContext* gc = wxGraphicsContext::Create(overlay);
-		gc->SetBrush(wxBrush(ScreenToneMask));
+		gc->SetBrush(*wxGREY_BRUSH);
 		gc->DrawRectangle(0, 0, PanelRadius * 4, PanelRadius * 4);
 		gc->SetBrush(*wxBLACK_BRUSH);
 		gc->DrawEllipse(PanelRadius * 2 - m_SelectionRadius, PanelRadius * 2  - m_SelectionRadius, m_SelectionRadius * 2, m_SelectionRadius * 2);
