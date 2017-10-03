@@ -71,7 +71,7 @@ MapResizeDialog::MapResizeDialog(wxWindow* parent)
 	buttonSizer->AddSpacer(5);
 	buttonSizer->Add(new wxButton(this, wxID_CANCEL, _("Cancel")));
 
-	sizer->Add(buttonSizer, wxSizerFlags().Align(wxALIGN_RIGHT | wxALIGN_BOTTOM).Border(wxRIGHT | wxBOTTOM, 10));
+	sizer->Add(buttonSizer, wxSizerFlags().Align(wxALIGN_RIGHT).Border(wxRIGHT | wxBOTTOM, 10));
 
 	SetSizerAndFit(sizer);
 	Layout();
